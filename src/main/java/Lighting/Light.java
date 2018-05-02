@@ -2,6 +2,7 @@ package Lighting;
 
 import Shapes.Line;
 import Shapes.Shape;
+import Shapes.Triangle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -158,4 +159,93 @@ public abstract class Light {
 
     }
 
+    public Array<Triangle> raycastForTriangles(Array<Shape> shapes, Vector2 origin) {
+        collidedRays.clear();
+        rays.clear();
+
+        Array<Triangle> triangles = new Array<Triangle>();
+        Array<Line> shapeLines = new Array<Line>(); //the lines that create the shapes
+
+        for (Shape shape : shapes) {
+            //cast towards the shape vertices
+            for (Vector2 vertex : shape.getVertices()) {
+                Line firstLine = new Line(origin, vertex);
+                rays.add(firstLine);
+                rays.add(new Line(origin, firstLine.getAngle(), 0.001, LENGTH));
+                rays.add(new Line(origin, firstLine.getAngle(), -0.001, LENGTH));
+            }
+
+            //add this shapes lines to be checked for intersections with rays
+            shapeLines.addAll(shape.getLines());
+        }
+
+        Array<Vector2> hits = new Array<Vector2>(); //the location of any rays that intersect with a line
+
+        for (Line ray : rays) {
+            for (Line line : shapeLines) {
+                Vector2 intersection = ray.intersects(line);
+                if (intersection != null) {
+                    hits.add(intersection);
+                }
+            }
+
+            //add the lowest hit if a hit occurred
+            if (hits.size > 0) {
+                Vector2 lowest = hits.get(0);
+                for (Vector2 hit : hits)
+                    if (origin.dst(hit) < origin.dst(lowest))
+                        lowest = hit;
+
+                collidedRays.add(new Line(origin, lowest));
+                hits.clear();
+            }
+        }
+
+        if (collidedRays.size > 0) {
+            //sort valid rays by angle using bubble sort
+            int n = collidedRays.size;
+            int k;
+            for (int m = n; m >= 0; m--) {
+                for (int i = 0; i < n - 1; i++) {
+                    k = i + 1;
+                    if (Line.getAngleBetween(collidedRays.get(i).getP1(), collidedRays.get(i).getP2()) > Line.getAngleBetween(collidedRays.get(k).getP1(), collidedRays.get(k).getP2())) {
+                        Line temp;
+                        temp = collidedRays.get(i);
+                        collidedRays.set(i, collidedRays.get(k));
+                        collidedRays.set(k, temp);
+                    }
+                }
+            }
+
+            //create the triangles using the sorted rays
+            for (int i = 0; i < collidedRays.size - 1; i++) {
+                triangles.add(new Triangle(
+                        (int)collidedRays.get(i).getP2().x,
+                        (int)collidedRays.get(i).getP2().y,
+                        (int)origin.x,
+                        (int)origin.y,
+                        (int)collidedRays.get(i + 1).getP2().x,
+                        (int)collidedRays.get(i + 1).getP2().y
+                ));
+            }
+
+            //connect the last hit to the first
+            triangles.add(new Triangle(
+                    (int)collidedRays.get(0).getP2().x,
+                    (int)collidedRays.get(0).getP2().y,
+                    (int)origin.x,
+                    (int)origin.y,
+                    (int)collidedRays.get(collidedRays.size - 1).getP2().x,
+                    (int)collidedRays.get(collidedRays.size - 1).getP2().y
+            ));
+
+        }
+
+
+        return triangles;
+    }
+
+    public Color getColour() {
+        return COLOUR;
+    }
 }

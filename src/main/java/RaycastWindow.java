@@ -4,7 +4,9 @@ import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.*;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
@@ -32,6 +34,12 @@ public class RaycastWindow implements ApplicationListener {
 
     private Vision mouseLight = new Vision(2000, Color.WHITE);
 
+    private Texture background;
+
+    private Sprite snowman;
+
+    private Texture backgroundColour;
+
     public void create() {
         cam = new OrthographicCamera(1000, 1000);
         cam.translate(500,500);
@@ -46,12 +54,16 @@ public class RaycastWindow implements ApplicationListener {
 
         font = new BitmapFont();
         font.setUseIntegerPositions(false);
-        //font.getData().setScale(2);
+
+        background = new Texture(Gdx.files.internal("backgroundbw.png"));
+        backgroundColour = new Texture(Gdx.files.internal("background.png"));
+        snowman = new Sprite(new Texture(Gdx.files.internal("snowman.png")));
 
         addShapes();
     }
 
     private void addShapes() {
+        /*
         shapes.addAll(
                 //wall
                 new Rectangle(
@@ -96,6 +108,33 @@ public class RaycastWindow implements ApplicationListener {
 
         generateRectangles(8, 500, 505, -60, -60, 50, 50);
         generateRectangles(8, 900, 100, 0, -20, 10, 10);
+        */
+
+        shapes.addAll(
+                //wall
+                new Rectangle(
+                        new Vector2(0, 0),
+                        1000,
+                        1000
+                ),
+                new Triangle(
+                        new Vector2(115, 230),
+                        new Vector2(345, 230),
+                        new Vector2(230, 420)
+                ),
+                new Rectangle(
+                        new Vector2(488,160),
+                        412,
+                        272
+                ),
+                new Polygon(
+                        new Vector2(312,620),
+                        new Vector2(260, 776),
+                        new Vector2(395, 868),
+                        new Vector2(530, 776),
+                        new Vector2(480, 620)
+                )
+        );
     }
 
     /**
@@ -117,36 +156,79 @@ public class RaycastWindow implements ApplicationListener {
     }
 
     public void render() {
-        Gdx.gl.glClearColor(0.2f, 0.2f, 0.2f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        System.out.println(Gdx.graphics.getFramesPerSecond());
 
         //update mouse position
         Vector3 mp3 = cam.unproject(new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0));
         mp = new Vector2(mp3.x, mp3.y);
 
-        Pixmap pixMap = mouseLight.raycast(shapes, mp);
-        Texture map = new Texture(pixMap);
-        pixMap.dispose();
-
         sb.begin();
 
-        sb.draw(map, 0,0,  map.getWidth(), map.getHeight(), 0,0,
-                map.getWidth(), map.getHeight(), false, true);
-
-        sr.begin();
-
-        //mouseLight.drawDebug(sr, sb, font);
+        sb.draw(background, 0,0);
 
         sb.end();
 
-        map.dispose();
+        drawMask();
+        drawMaskedSprites();
+        //drawShapes();
+
+        Gdx.gl.glDisable(GL20.GL_DEPTH_TEST);
+    }
+
+    private void drawShapes() {
+        sr.begin();
 
         for (Shape shape : shapes) {
             for (Line line : shape.getLines()) {
                 sr.setColor(Color.PURPLE);
                 sr.line(line.getP1(), line.getP2());
             }
+        }
+
+        sr.end();
+    }
+
+    /**
+     * Draw sprites that can only be seen in light.
+     */
+    private void drawMaskedSprites() {
+        sb.begin();
+
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST);
+
+        //re-enable the depth test
+        Gdx.gl.glDepthFunc(GL20.GL_EQUAL);
+
+        //sb.draw(background, 0,0);
+        sb.draw(backgroundColour, 0,0);
+
+        sb.draw(snowman,10,10);
+
+        sb.end();
+    }
+
+    /**
+     * Draw lights to mask sprites.
+     */
+    private void drawMask() {
+        Gdx.gl.glClearDepthf(1f);
+        Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT); //clear depth buffer
+        Gdx.gl.glDepthFunc(GL20.GL_LESS); //set the function to LESS
+        Gdx.gl.glEnable(GL20.GL_DEPTH_TEST); //enable depth writing
+        Gdx.gl.glDepthMask(true);
+
+        sr.begin(ShapeRenderer.ShapeType.Filled);
+        sr.setColor(mouseLight.getColour());
+
+        //the triangles that make up the light
+        Array<Triangle> triangles = mouseLight.raycastForTriangles(shapes,mp);
+
+        for (Triangle triangle : triangles) {
+            Vector2 p1 = triangle.getVertices().get(0);
+            Vector2 p2 = triangle.getVertices().get(1);
+            Vector2 p3 = triangle.getVertices().get(2);
+
+            sr.triangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
         }
 
         sr.end();
