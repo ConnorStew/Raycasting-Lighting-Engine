@@ -1,5 +1,7 @@
 import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
 import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
+import components.PathingWindow;
+import components.RaycastWindow;
 
 public class Driver {
 
@@ -8,7 +10,6 @@ public class Driver {
         config.title = "Physics";
         config.width = 900;
         config.height = 700;
-        new LwjglApplication(new RaycastWindow(), config);
-
+        new LwjglApplication(new PathingWindow(), config);
     }
 }
