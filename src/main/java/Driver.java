@@ -9,6 +9,5 @@ public class Driver {
         config.width = 900;
         config.height = 700;
         new LwjglApplication(new RaycastWindow(), config);
-
     }
 }
