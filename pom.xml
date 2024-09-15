@@ -74,7 +74,6 @@
         </plugins>
     </build>
 
-
     <dependencies>
         <dependency>
             <groupId>com.badlogicgames.gdx</groupId>
