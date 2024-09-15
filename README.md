@@ -4,7 +4,7 @@ A lighting system using raycasting.
 
 ![Screenshot](./images/image.png)
 
-# Build
+## Build
 Debian/WSL prerequisites:
 ```
 sudo apt-get install x11-xserver-utils maven
